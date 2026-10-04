@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kelas X.6 — Galeri Online</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+  body {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #6a11cb 100%);
+    min-height: 100vh; color: #fff; padding-bottom: 60px;
+  }
+  header { text-align: center; padding: 60px 20px 40px; }
+  header h1 {
+    font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 800; letter-spacing: 2px;
+    background: linear-gradient(90deg, #fff, #a8e6ff, #fff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p { margin-top: 12px; font-size: 1.1rem; opacity: 0.85; }
+  .divider { width: 80px; height: 4px; background: linear-gradient(90deg, #a8e6ff, #fff); margin: 20px auto; border-radius: 4px; }
+
+  .toolbar {
+    max-width: 1100px; margin: 0 auto 30px; padding: 0 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 15px;
+  }
+  .btn-upload {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f); color: #fff;
+    border: none; padding: 14px 30px; font-size: 1rem; font-weight: 600;
+    border-radius: 50px; cursor: pointer; transition: all 0.3s ease;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 20px rgba(238,90,111,0.4);
+  }
+  .btn-upload:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(238,90,111,0.6); }
+  .btn-upload:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .count {
+    background: rgba(255,255,255,0.15); padding: 10px 20px; border-radius: 50px;
+    font-size: 0.95rem; backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .gallery {
+    max-width: 1100px; margin: 0 auto; padding: 0 20px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px;
+  }
+  .photo-card {
+    position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden;
+    cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    background: rgba(255,255,255,0.08); transition: transform 0.35s ease;
+    animation: fadeIn 0.5s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  .photo-card:hover { transform: translateY(-6px) scale(1.02); }
+  .photo-card img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+  .photo-card:hover img { transform: scale(1.08); }
+
+  .photo-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%);
+    opacity: 0; transition: opacity 0.3s ease;
+    display: flex; flex-direction: column; justify-content: flex-end; padding: 14px;
+  }
+  .photo-card:hover .photo-overlay { opacity: 1; }
+  .photo-overlay span { font-size: 0.85rem; font-weight: 500; word-break: break-word; }
+
+  .btn-delete {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(255,60,60,0.9); color: #fff; border: none;
+    width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+    font-size: 1rem; opacity: 0; transition: opacity 0.3s ease, transform 0.2s ease;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .photo-card:hover .btn-delete { opacity: 1; }
+  .btn-delete:hover { transform: scale(1.15); background: #ff2020; }
+
+  .empty {
+    max-width: 500px; margin: 60px auto; text-align: center; padding: 40px 20px;
+    background: rgba(255,255,255,0.08); border-radius: 20px;
+    border: 2px dashed rgba(255,255,255,0.25); backdrop-filter: blur(10px);
+  }
+  .empty .icon { font-size: 4rem; margin-bottom: 15px; }
+  .empty h3 { font-size: 1.4rem; margin-bottom: 8px; }
+  .empty p { opacity: 0.75; font-size: 0.95rem; }
+
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.93);
+    display: none; align-items: center; justify-content: center;
+    z-index: 1000; padding: 30px; animation: fadeIn 0.25s ease;
+  }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 92%; max-height: 88vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
+  .lightbox .close { position: absolute; top: 25px; right: 30px; font-size: 2.5rem; color: #fff; cursor: pointer; transition: transform 0.2s; }
+  .lightbox .close:hover { transform: rotate(90deg); }
+
+  .loading { text-align: center; padding: 40px; font-size: 1.1rem; opacity: 0.8; }
+  footer { text-align: center; margin-top: 50px; padding: 20px; opacity: 0.7; font-size: 0.9rem; }
+
+  @media (max-width: 600px) {
+    header { padding: 40px 15px 25px; }
+    .toolbar { justify-content: center; text-align: center; }
+    .gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .btn-delete { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>KELAS X.6</h1>
+  <div class="divider"></div>
+  <p>📸 Galeri Online — Akses dari mana saja</p>
+</header>
+
+<div class="toolbar">
+  <button class="btn-upload" id="uploadBtn">
+    <span style="font-size:1.3rem;">＋</span> Upload Foto
+  </button>
+  <div class="count" id="photoCount">Memuat...</div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
+
+<div class="gallery" id="gallery"></div>
+
+<div class="empty" id="emptyState" style="display:none;">
+  <div class="icon">🖼️</div>
+  <h3>Belum ada foto</h3>
+  <p>Klik tombol "Upload Foto" untuk menambahkan momen kelas X.6</p>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <span class="close" onclick="closeLightbox()">×</span>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<footer>© Kelas X.6 — Dibuat dengan ❤️</footer>
+
+<!-- ====== FIREBASE SDK ====== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
+  from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy }
+  from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+/* ============================================================
+   ⚠️ GANTI DENGAN KONFIGURASI FIREBASE KAMU (lihat langkah setup)
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "ISI_API_KEY_KAMU",
+  authDomain: "ISI_AUTH_DOMAIN_KAMU",
+  projectId: "ISI_PROJECT_ID_KAMU",
+  storageBucket: "ISI_STORAGE_BUCKET_KAMU",
+  messagingSenderId: "ISI_SENDER_ID_KAMU",
+  appId: "ISI_APP_ID_KAMU"
+};
+
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+const db = getFirestore(app);
+const PHOTOS_COLLECTION = "photos";
+
+/* ========== UI ========== */
+const gallery = document.getElementById('gallery');
+const emptyState = document.getElementById('emptyState');
+const photoCount = document.getElementById('photoCount');
+const fileInput = document.getElementById('fileInput');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const uploadBtn = document.getElementById('uploadBtn');
+
+let photosCache = [];
+
+/* ========== LOAD FOTO DARI FIRESTORE ========== */
+async function loadPhotos() {
+  gallery.innerHTML = '<div class="loading" style="grid-column:1/-1;">Memuat galeri...</div>';
+  try {
+    const q = query(collection(db, PHOTOS_COLLECTION), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    photosCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGallery();
+  } catch (err) {
+    console.error(err);
+    gallery.innerHTML = '<div class="loading" style="grid-column:1/-1;">Gagal memuat data 😢</div>';
+  }
+}
+
+/* ========== RENDER GALERI ========== */
+function renderGallery() {
+  gallery.innerHTML = '';
+  photoCount.textContent = photosCache.length + ' Foto';
+
+  if (photosCache.length === 0) {
+    emptyState.style.display = 'block';
+    gallery.style.display = 'none';
+    return;
+  }
+  emptyState.style.display = 'none';
+  gallery.style.display = 'grid';
+
+  photosCache.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+
+    const img = document.createElement('img');
+    img.src = p.url; img.alt = p.name || 'Foto'; img.loading = 'lazy';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'photo-overlay';
+    overlay.innerHTML = `<span>${escapeHTML(p.name || 'Foto')}</span>`;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-delete';
+    delBtn.innerHTML = '🗑';
+    delBtn.title = 'Hapus foto';
+    delBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm('Yakin ingin menghapus foto ini?')) return;
+      delBtn.disabled = true;
+      try {
+        // Hapus file dari Storage
+        const fileRef = ref(storage, p.storagePath);
+        await deleteObject(fileRef);
+        // Hapus metadata dari Firestore
+        await deleteDoc(doc(db, PHOTOS_COLLECTION, p.id));
+        showToast('Foto berhasil dihapus 🗑');
+        loadPhotos();
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal menghapus foto ❌');
+        delBtn.disabled = false;
+      }
+    };
+
+    card.onclick = () => openLightbox(p.url);
+    card.appendChild(img);
+    card.appendChild(overlay);
+    card.appendChild(delBtn);
+    gallery.appendChild(card);
+  });
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ========== UPLOAD FOTO ========== */
+uploadBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = '<span>⏳</span> Mengupload...';
+
+  let uploaded = 0;
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    try {
+      // Kompres gambar agar hemat bandwidth & storage
+      const blob = await compressImage(file, 1400, 0.85);
+
+      const storagePath = `kelas-x6/${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, storagePath);
+
+      // Upload ke Firebase Storage
+      await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+      const url = await getDownloadURL(storageRef);
+
+      // Simpan metadata ke Firestore
+      await addDoc(collection(db, PHOTOS_COLLECTION), {
+        name: file.name,
+        url: url,
+        storagePath: storagePath,
+        createdAt: new Date()
+      });
+      uploaded++;
+    } catch (err) {
+      console.error('Gagal upload:', file.name, err);
+    }
+  }
+
+  fileInput.value = '';
+  uploadBtn.disabled = false;
+  uploadBtn.innerHTML = '<span style="font-size:1.3rem;">＋</span> Upload Foto';
+
+  if (uploaded > 0) {
+    showToast(`${uploaded} foto berhasil diupload! ✅`);
+    loadPhotos();
+  } else {
+    showToast('Tidak ada foto yang berhasil diupload ❌');
+  }
+});
+
+/* ========== KOMPRES GAMBAR ========== */
+function compressImage(file, maxWidth, quality) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ========== LIGHTBOX ========== */
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add('active');
+}
+function closeLightbox() {
+  lightbox.classList.remove('active');
+  lightboxImg.src = '';
+}
+lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+window.closeLightbox = closeLightbox;
+
+/* ========== TOAST ========== */
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  Object.assign(toast.style, {
+    position: 'fixed', bottom: '30px', left: '50%',
+    transform: 'translateX(-50%) translateY(100px)',
+    background: 'rgba(0,0,0,0.85)', color: '#fff', padding: '14px 26px',
+    borderRadius: '50px', fontSize: '0.95rem', zIndex: 2000,
+    transition: 'transform 0.4s ease, opacity 0.4s ease', opacity: '0',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+  });
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    toast.style.opacity = '1';
+  });
+  setTimeout(() => {
+    toast.style.transform = 'translateX(-50%) translateY(100px)';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 400);
+  }, 2500);
+}
+
+/* ========== INIT ========== */
+loadPhotos();
+</script>
+</body>
+</html>
